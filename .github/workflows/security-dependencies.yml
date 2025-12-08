@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '0 2 * * 1'  # Tous les lundis à 2h du matin
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   python-safety:
     name: 🐍 Python Safety Check
@@ -144,7 +149,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
       
       - name: 📊 Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
