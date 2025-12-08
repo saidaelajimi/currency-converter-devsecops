@@ -2,9 +2,14 @@ import os
 from flask import Flask, jsonify, request, abort
 import requests
 from flask_cors import CORS  
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__) 
+# Secret key needed by CSRFProtect
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "change_me_in_production")
 
+# Enable CSRF protection (compliant solution)
+csrf = CSRFProtect(app)
 #  Limitation du CORS uniquement à la route /rates et aux origines connues
 CORS(app, resources={
     r"/rates": {
