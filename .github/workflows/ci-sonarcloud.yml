@@ -12,29 +12,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # obligatoire pour sonar
+          fetch-depth: 0
 
+      # 2️⃣ Set up Python
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: 📦 Install backend dependencies
+      # 3️⃣ Install backend dependencies
+      - name: 📦 Install dependencies
         run: |
           cd backend
+          pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🧪 Run Pytest + Coverage (for sonar)
+      # 4️⃣ Run Pytest for coverage (SonarCloud needs coverage file)
+      - name: 🧪 Run Pytest + Coverage
         run: |
           cd backend
           pytest --cov=. --cov-report=xml
 
+      # 5️⃣ SonarCloud Scan
       - name: 🔍 SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: backend
+          args: >
+            -Dsonar.projectKey=saidaelajimi_currency-converter-devsecops
+            -Dsonar.organization=saidaelajimi
+            -Dsonar.python.coverage.reportPaths=backend/coverage.xml
