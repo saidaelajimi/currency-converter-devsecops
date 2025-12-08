@@ -12,31 +12,43 @@ jobs:
   python-safety:
     name: 🐍 Python Safety Check
     runs-on: ubuntu-latest
-    if: hashFiles('**/requirements.txt') != '' || hashFiles('**/Pipfile') != '' || hashFiles('**/pyproject.toml') != ''
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
       
+      - name: 🔍 Check if Python dependencies exist
+        id: check-python
+        run: |
+          if [ -f "requirements.txt" ] || [ -f "Pipfile" ] || [ -f "pyproject.toml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: 🐍 Setup Python
+        if: steps.check-python.outputs.exists == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       
       - name: 📦 Install Safety
+        if: steps.check-python.outputs.exists == 'true'
         run: pip install safety
       
       - name: 🔍 Run Safety Check
+        if: steps.check-python.outputs.exists == 'true'
         run: |
           if [ -f requirements.txt ]; then
+            echo "Scanning requirements.txt..."
             safety check --file requirements.txt --output json > safety-report.json || true
             safety check --file requirements.txt
           else
-            echo "No requirements.txt found"
+            echo "No requirements.txt found, skipping"
           fi
       
       - name: 📊 Upload Safety Report
-        if: always()
+        if: steps.check-python.outputs.exists == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: safety-report
@@ -45,25 +57,36 @@ jobs:
   npm-audit:
     name: 📦 NPM Audit
     runs-on: ubuntu-latest
-    if: hashFiles('**/package-lock.json') != ''
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
       
+      - name: 🔍 Check if package-lock.json exists
+        id: check-npm
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No package-lock.json found, skipping NPM audit"
+          fi
+      
       - name: 📦 Setup Node.js
+        if: steps.check-npm.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
       
       - name: 🔍 Run NPM Audit
+        if: steps.check-npm.outputs.exists == 'true'
         run: |
           npm audit --json > npm-audit.json || true
           npm audit
         continue-on-error: true
       
       - name: 📊 Upload NPM Audit Report
-        if: always()
+        if: steps.check-npm.outputs.exists == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: npm-audit-report
@@ -77,7 +100,18 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
       
+      - name: 🔍 Check if SNYK_TOKEN is set
+        id: check-snyk
+        run: |
+          if [ -n "${{ secrets.SNYK_TOKEN }}" ]; then
+            echo "token_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "token_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SNYK_TOKEN not configured, skipping Snyk scan"
+          fi
+      
       - name: 🔍 Run Snyk to check for vulnerabilities
+        if: steps.check-snyk.outputs.token_exists == 'true'
         uses: snyk/actions/python@master
         continue-on-error: true
         env:
@@ -86,7 +120,7 @@ jobs:
           args: --severity-threshold=high --json-file-output=snyk-report.json
       
       - name: 📊 Upload Snyk Report
-        if: always()
+        if: steps.check-snyk.outputs.token_exists == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: snyk-report
@@ -115,7 +149,7 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
       
-      - name: 📊 Upload Trivy Report
+      - name: 📊 Upload Trivy Report as Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -140,14 +174,36 @@ jobs:
           echo "* 🔒 Trivy FS: **${{ needs.trivy-fs.result }}**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ needs.python-safety.result }}" == "failure" ] || [ "${{ needs.npm-audit.result }}" == "failure" ] || [ "${{ needs.trivy-fs.result }}" == "failure" ]; then
-            echo "⚠️ **Vulnerabilities detected!**" >> $GITHUB_STEP_SUMMARY
+          FAILURES=0
+          if [ "${{ needs.python-safety.result }}" == "failure" ]; then
+            FAILURES=$((FAILURES + 1))
+          fi
+          if [ "${{ needs.npm-audit.result }}" == "failure" ]; then
+            FAILURES=$((FAILURES + 1))
+          fi
+          if [ "${{ needs.trivy-fs.result }}" == "failure" ]; then
+            FAILURES=$((FAILURES + 1))
+          fi
+          
+          if [ $FAILURES -gt 0 ]; then
+            echo "⚠️ **Vulnerabilities detected in $FAILURES scanner(s)!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### Action Required:" >> $GITHUB_STEP_SUMMARY
-            echo "1. Review the detailed reports in artifacts" >> $GITHUB_STEP_SUMMARY
-            echo "2. Update vulnerable dependencies" >> $GITHUB_STEP_SUMMARY
-            echo "3. Check for available patches" >> $GITHUB_STEP_SUMMARY
-            echo "4. Consider using Dependabot for automated updates" >> $GITHUB_STEP_SUMMARY
+            echo "1. 📥 Download and review the detailed reports in artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "2. 🔄 Update vulnerable dependencies to patched versions" >> $GITHUB_STEP_SUMMARY
+            echo "3. 🔍 Check for available security patches" >> $GITHUB_STEP_SUMMARY
+            echo "4. 🤖 Consider enabling Dependabot for automated updates" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### How to fix:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "# For Python dependencies" >> $GITHUB_STEP_SUMMARY
+            echo "pip install --upgrade [package-name]" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# For NPM dependencies" >> $GITHUB_STEP_SUMMARY
+            echo "npm audit fix" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           else
             echo "✅ **No critical vulnerabilities detected!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All dependency scanners passed successfully. Your dependencies appear to be secure." >> $GITHUB_STEP_SUMMARY
           fi
