@@ -1,5 +1,5 @@
 
-name: 🧪 Tests & Coverage
+name:  Tests & Coverage
 
 on:
   push:
@@ -9,37 +9,37 @@ on:
 
 jobs:
   backend-tests:
-    name: 🐍 Backend Tests
+    name:  Backend Tests
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
       
-      - name: 🐍 Set up Python
+      - name:  Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
       
-      - name: 📦 Install dependencies
+      - name:  Install dependencies
         run: |
           cd backend
           pip install -r requirements.txt
       
-      - name: 🧪 Run tests with coverage
+      - name:  Run tests with coverage
         run: |
           cd backend
           python -m pytest --cov=. --cov-report=xml --cov-report=term -v
       
-      - name: 📊 Upload coverage to Codecov
+      - name:  Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           file: ./backend/coverage.xml
           flags: backend
           fail_ci_if_error: false
       
-      - name: 📈 Upload coverage report
+      - name:  Upload coverage report
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -47,39 +47,39 @@ jobs:
           path: backend/htmlcov/
 
   frontend-tests:
-    name: ⚛️ Frontend Tests
+    name:  Frontend Tests
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
       
-      - name: 📦 Set up Node.js
+      - name:  Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       
-      - name: 📦 Install dependencies
+      - name:  Install dependencies
         run: |
           cd frontend
           npm ci
       
-      - name: 🧪 Run tests
+      - name:  Run tests
         run: |
           cd frontend
           npm run test:run
 
   test-summary:
-    name: 📊 Summary
+    name:  Summary
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-tests]
     if: always()
     
     steps:
-      - name: 📊 Results
+      - name:  Results
         run: |
-          echo "# 🧪 Test Results Summary"
-          echo "- 🐍 Backend: \${{ needs.backend-tests.result }}"
-          echo "- ⚛️ Frontend: \${{ needs.frontend-tests.result }}"
+          echo "#  Test Results Summary"
+          echo "-  Backend: \${{ needs.backend-tests.result }}"
+          echo "-  Frontend: \${{ needs.frontend-tests.result }}"
