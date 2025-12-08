@@ -1,4 +1,4 @@
-name: 📦 Dependency Scanning
+name:  Dependency Scanning
 
 on:
   push:
@@ -15,14 +15,14 @@ permissions:
 
 jobs:
   python-safety:
-    name: 🐍 Python Safety Check
+    name:  Python Safety Check
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
       
-      - name: 🔍 Check if Python dependencies exist
+      - name:  Check if Python dependencies exist
         id: check-python
         run: |
           if [ -f "requirements.txt" ] || [ -f "Pipfile" ] || [ -f "pyproject.toml" ]; then
@@ -31,17 +31,17 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: 🐍 Setup Python
+      - name:  Setup Python
         if: steps.check-python.outputs.exists == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       
-      - name: 📦 Install Safety
+      - name:  Install Safety
         if: steps.check-python.outputs.exists == 'true'
         run: pip install safety
       
-      - name: 🔍 Run Safety Check
+      - name:  Run Safety Check
         if: steps.check-python.outputs.exists == 'true'
         run: |
           if [ -f requirements.txt ]; then
@@ -52,7 +52,7 @@ jobs:
             echo "No requirements.txt found, skipping"
           fi
       
-      - name: 📊 Upload Safety Report
+      - name:  Upload Safety Report
         if: steps.check-python.outputs.exists == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
@@ -60,14 +60,14 @@ jobs:
           path: safety-report.json
 
   npm-audit:
-    name: 📦 NPM Audit
+    name:  NPM Audit
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
       
-      - name: 🔍 Check if package-lock.json exists
+      - name:  Check if package-lock.json exists
         id: check-npm
         run: |
           if [ -f "package-lock.json" ]; then
@@ -77,20 +77,20 @@ jobs:
             echo "No package-lock.json found, skipping NPM audit"
           fi
       
-      - name: 📦 Setup Node.js
+      - name:  Setup Node.js
         if: steps.check-npm.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
       
-      - name: 🔍 Run NPM Audit
+      - name:  Run NPM Audit
         if: steps.check-npm.outputs.exists == 'true'
         run: |
           npm audit --json > npm-audit.json || true
           npm audit
         continue-on-error: true
       
-      - name: 📊 Upload NPM Audit Report
+      - name:  Upload NPM Audit Report
         if: steps.check-npm.outputs.exists == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
@@ -98,24 +98,24 @@ jobs:
           path: npm-audit.json
 
   snyk:
-    name: 🛡️ Snyk Vulnerability Scan
+    name:  Snyk Vulnerability Scan
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
       
-      - name: 🔍 Check if SNYK_TOKEN is set
+      - name:  Check if SNYK_TOKEN is set
         id: check-snyk
         run: |
           if [ -n "${{ secrets.SNYK_TOKEN }}" ]; then
             echo "token_exists=true" >> $GITHUB_OUTPUT
           else
             echo "token_exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️ SNYK_TOKEN not configured, skipping Snyk scan"
+            echo " SNYK_TOKEN not configured, skipping Snyk scan"
           fi
       
-      - name: 🔍 Run Snyk to check for vulnerabilities
+      - name:  Run Snyk to check for vulnerabilities
         if: steps.check-snyk.outputs.token_exists == 'true'
         uses: snyk/actions/python@master
         continue-on-error: true
@@ -124,7 +124,7 @@ jobs:
         with:
           args: --severity-threshold=high --json-file-output=snyk-report.json
       
-      - name: 📊 Upload Snyk Report
+      - name:  Upload Snyk Report
         if: steps.check-snyk.outputs.token_exists == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
@@ -132,14 +132,14 @@ jobs:
           path: snyk-report.json
 
   trivy-fs:
-    name: 🔒 Trivy Filesystem Scan
+    name:  Trivy Filesystem Scan
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
       
-      - name: 🔍 Run Trivy vulnerability scanner
+      - name:  Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -148,13 +148,13 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
       
-      - name: 📊 Upload Trivy results to GitHub Security
+      - name:  Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
       
-      - name: 📊 Upload Trivy Report as Artifact
+      - name:  Upload Trivy Report as Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -162,21 +162,21 @@ jobs:
           path: trivy-results.sarif
 
   summary:
-    name: 📊 Dependency Summary
+    name:  Dependency Summary
     runs-on: ubuntu-latest
     needs: [python-safety, npm-audit, snyk, trivy-fs]
     if: always()
     
     steps:
-      - name: 📊 Generate Summary
+      - name:  Generate Summary
         run: |
-          echo "# 📦 Dependency Scanning Results" >> $GITHUB_STEP_SUMMARY
+          echo "#  Dependency Scanning Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "* 🐍 Python Safety: **${{ needs.python-safety.result }}**" >> $GITHUB_STEP_SUMMARY
-          echo "* 📦 NPM Audit: **${{ needs.npm-audit.result }}**" >> $GITHUB_STEP_SUMMARY
-          echo "* 🛡️ Snyk: **${{ needs.snyk.result }}**" >> $GITHUB_STEP_SUMMARY
-          echo "* 🔒 Trivy FS: **${{ needs.trivy-fs.result }}**" >> $GITHUB_STEP_SUMMARY
+          echo "*  Python Safety: **${{ needs.python-safety.result }}**" >> $GITHUB_STEP_SUMMARY
+          echo "*  NPM Audit: **${{ needs.npm-audit.result }}**" >> $GITHUB_STEP_SUMMARY
+          echo "*  Snyk: **${{ needs.snyk.result }}**" >> $GITHUB_STEP_SUMMARY
+          echo "*  Trivy FS: **${{ needs.trivy-fs.result }}**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           FAILURES=0
@@ -191,13 +191,13 @@ jobs:
           fi
           
           if [ $FAILURES -gt 0 ]; then
-            echo "⚠️ **Vulnerabilities detected in $FAILURES scanner(s)!**" >> $GITHUB_STEP_SUMMARY
+            echo " **Vulnerabilities detected in $FAILURES scanner(s)!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### Action Required:" >> $GITHUB_STEP_SUMMARY
-            echo "1. 📥 Download and review the detailed reports in artifacts" >> $GITHUB_STEP_SUMMARY
-            echo "2. 🔄 Update vulnerable dependencies to patched versions" >> $GITHUB_STEP_SUMMARY
-            echo "3. 🔍 Check for available security patches" >> $GITHUB_STEP_SUMMARY
-            echo "4. 🤖 Consider enabling Dependabot for automated updates" >> $GITHUB_STEP_SUMMARY
+            echo "1.  Download and review the detailed reports in artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "2.  Update vulnerable dependencies to patched versions" >> $GITHUB_STEP_SUMMARY
+            echo "3.  Check for available security patches" >> $GITHUB_STEP_SUMMARY
+            echo "4.  Consider enabling Dependabot for automated updates" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### How to fix:" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY

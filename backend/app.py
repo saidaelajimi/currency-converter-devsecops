@@ -5,7 +5,7 @@ from flask_cors import CORS
 
 app = Flask(__name__) 
 
-# 🔒 Limitation du CORS uniquement à la route /rates et aux origines connues
+#  Limitation du CORS uniquement à la route /rates et aux origines connues
 CORS(app, resources={
     r"/rates": {
         "origins": [
@@ -19,7 +19,7 @@ CORS(app, resources={
     }
 })
 
-# 🔐 Protection CSRF pour les routes POST (si ajoutées dans le futur)
+#  Protection CSRF pour les routes POST (si ajoutées dans le futur)
 CSRF_TOKEN = os.environ.get("CSRF_TOKEN", "default_csrf_token")  # définir dans GitHub secrets pour prod
 
 @app.before_request
@@ -29,7 +29,7 @@ def protect_csrf():
         if token != CSRF_TOKEN:
             abort(403, description="CSRF token missing or invalid")
 
-# 🚀 Route GET pour les taux de conversion
+#  Route GET pour les taux de conversion
 @app.route('/rates', methods=['GET'])
 def getRates():
     try:
@@ -39,7 +39,7 @@ def getRates():
         response.raise_for_status()
         data = response.json()
 
-        # 🔥 Format attendu par les tests
+        # Format attendu par les tests
         return jsonify({
             "status": "success",
             "conversion_rates": data.get("conversion_rates", {})
