@@ -21,7 +21,7 @@ ENV VITE_API_URL=$VITE_API_URL
 # Build de l'application
 RUN npm run build
 
-# Stage 2: Production avec Nginx
+# Stage 2 Production avec Nginx
 FROM nginx:1.25-alpine
 
 # Créer un utilisateur non-root
