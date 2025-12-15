@@ -1,0 +1,69 @@
+name: Deploy to Render
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/deploy-render.yml'
+      - 'render.yaml'
+
+jobs:
+  test:
+    name: Run Tests Before Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Backend Tests
+        uses: ./.github/workflows/ci-tests.yml
+      
+      - name: Run SonarCloud Analysis
+        uses: ./.github/workflows/ci-sonarcloud.yml
+
+  deploy-backend:
+    name: Deploy Backend to Render
+    runs-on: ubuntu-latest
+    needs: test
+    if: success()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy Backend Service
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+      
+      - name: Wait for Backend to be Ready
+        run: |
+          sleep 30
+          echo "Backend deployment triggered. Waiting for service to be ready..."
+
+  deploy-frontend:
+    name: Deploy Frontend to Render
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy Frontend Service
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
+          method: 'POST'
+          customHeaders: '{"Content-Type": "application/json"}'
+      
+      - name: Verify Deployment
+        run: |
+          echo "🎉 Deployment completed!"
+          echo "Backend URL: https://currency-converter-api.onrender.com"
+          echo "Frontend URL: https://currency-converter-web.onrender.com"

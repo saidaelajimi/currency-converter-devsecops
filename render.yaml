@@ -1,0 +1,44 @@
+# render.yaml
+services:
+  # Backend Service (Flask API)
+  - type: web
+    name: currency-converter-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: oregon  # or singapore, frankfurt, ohio
+    plan: free
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        generateValue: true
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WTF_CSRF_ENABLED
+        value: "false"
+      - key: EXCHANGE_RATE_API_KEY
+        sync: false  # You'll set this manually
+    healthCheckPath: /health
+    healthCheckTimeout: 10
+    autoDeploy: true
+    branch: main
+
+  # Frontend Service (React/Vite)
+  - type: web
+    name: currency-converter-web
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    region: oregon
+    plan: free
+    buildCommand: |
+      npm ci
+      npm run build
+    envVars:
+      - key: VITE_API_URL
+        value: https://currency-converter-api.onrender.com
+    healthCheckPath: /
+    healthCheckTimeout: 5
+    autoDeploy: true
+    branch: main
