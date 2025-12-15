@@ -30,21 +30,26 @@ jobs:
           cd backend
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-cov
 
-      # 4️⃣ Run Pytest for coverage (SonarCloud needs coverage file)
-      - name:  Run Pytest + Coverage
+      # 4️⃣ Run tests with coverage
+      - name:  Run tests and generate coverage
         run: |
           cd backend
-          pytest --cov=. --cov-report=xml
+          python -m pytest --cov=. --cov-report=xml --cov-report=html --junitxml=test-results.xml
 
-      # 5️⃣ SonarCloud Scan
+      # 5️⃣ SonarCloud Scan using new action
       - name:  SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+        uses: SonarSource/sonarqube-scan-action@v4.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: backend
           args: >
             -Dsonar.projectKey=saidaelajimi_currency-converter-devsecops
             -Dsonar.organization=saidaelajimi
+            -Dsonar.sources=backend
             -Dsonar.python.coverage.reportPaths=backend/coverage.xml
+            -Dsonar.tests=backend/tests
+            -Dsonar.test.exclusions=**/__pycache__/**,**/.pytest_cache/**
+            -Dsonar.python.xunit.reportPath=backend/test-results.xml
+            -Dsonar.scm.disabled=false

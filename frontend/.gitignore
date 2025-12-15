@@ -9,6 +9,8 @@ coverage.xml
 *.egg-info/
 venv/
 env/
+*$py.class
+.Python
 
 # Test coverage
 coverage/
@@ -37,3 +39,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# Secrets et configuration
+.env
+.env.local
+.env.*.local
+.env.production
+secrets/
+
+# Fichiers sensibles
+*.pem
+*.key
+*.crt
+*.p12
+

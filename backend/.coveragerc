@@ -1,0 +1,23 @@
+[run]
+source = .
+omit = 
+    */tests/*
+    */__pycache__/*
+    */venv/*
+    */env/*
+    */test_*.py
+    *conftest.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if settings.DEBUG
+    if self.debug
+
+[html]
+directory = htmlcov
+title = Currency Converter Coverage Report
