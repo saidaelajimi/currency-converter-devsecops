@@ -3,6 +3,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CurrencyConverter from '../CurrencyConverter';
 
+// Mock global.fetch pour tous les tests
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
 describe('CurrencyConverter Component', () => {
   const mockRatesResponse = {
     conversion_rates: {
@@ -16,32 +20,35 @@ describe('CurrencyConverter Component', () => {
   };
 
   beforeEach(() => {
-    global.fetch.mockClear();
+    mockFetch.mockClear();
+    // Réinitialiser localStorage si utilisé
+    localStorage.clear();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the component', () => {
-    global.fetch.mockResolvedValueOnce({
+  it('renders the component', async () => {
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => mockRatesResponse
     });
 
     render(<CurrencyConverter />);
     expect(screen.getByText(/Loading exchange rates/i)).toBeInTheDocument();
-
   });
 
   it('displays loading state initially', () => {
-    global.fetch.mockImplementationOnce(() => new Promise(() => {}));
+    // Ne pas résoudre la promesse pour garder l'état de chargement
+    mockFetch.mockImplementationOnce(() => new Promise(() => {}));
+    
     render(<CurrencyConverter />);
     expect(screen.getByText(/Loading exchange rates/i)).toBeInTheDocument();
   });
 
   it('fetches and displays exchange rates', async () => {
-    global.fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => mockRatesResponse
     });
@@ -59,7 +66,7 @@ describe('CurrencyConverter Component', () => {
   });
 
   it('converts currency correctly', async () => {
-    global.fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => mockRatesResponse
     });
@@ -81,7 +88,7 @@ describe('CurrencyConverter Component', () => {
   });
 
   it('switches currencies when button is clicked', async () => {
-    global.fetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => mockRatesResponse
     });
@@ -107,11 +114,32 @@ describe('CurrencyConverter Component', () => {
   });
 
   it('handles API errors gracefully', async () => {
-    global.fetch.mockRejectedValueOnce(new Error('API Error'));
+    mockFetch.mockRejectedValueOnce(new Error('API Error'));
+    
     render(<CurrencyConverter />);
 
     await waitFor(() => {
       expect(screen.getByText(/Error:/i)).toBeInTheDocument();
     });
+  });
+
+  it('handles non-numeric input gracefully', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockRatesResponse
+    });
+
+    render(<CurrencyConverter />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    });
+
+    const input = screen.getByPlaceholderText(/Enter amount/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, 'abc');
+
+    // Le champ doit être vide ou gérer la conversion
+    expect(input.value).toBe('');
   });
 });

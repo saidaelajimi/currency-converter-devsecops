@@ -1,12 +1,14 @@
-
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import App from '../App';
 
+// Mock fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
 describe('App Component', () => {
   beforeEach(() => {
-    // Mock de fetch pour éviter les erreurs
-    global.fetch.mockResolvedValue({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         conversion_rates: {
@@ -20,12 +22,30 @@ describe('App Component', () => {
 
   it('renders without crashing', () => {
     render(<App />);
-    expect(document.querySelector('.App')).toBeInTheDocument();
+    const appElement = document.querySelector('.App');
+    expect(appElement).toBeInTheDocument();
   });
 
   it('renders CurrencyConverter component', async () => {
     render(<App />);
-    const heading = await screen.findByText(/Currency Converter/i, {}, { timeout: 2000 });
+    
+    // Attendre que le composant soit chargé
+    const heading = await screen.findByText(
+      /Currency Converter/i,
+      {},
+      { timeout: 2000 }
+    );
+    
     expect(heading).toBeInTheDocument();
+  });
+
+  it('has correct layout structure', () => {
+    render(<App />);
+    
+    const mainContainer = screen.getByRole('main');
+    expect(mainContainer).toBeInTheDocument();
+    
+    // Vérifier les classes CSS
+    expect(mainContainer).toHaveClass('App');
   });
 });
